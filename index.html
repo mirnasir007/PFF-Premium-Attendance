@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PFF Premium Attendance</title>
+    
+    <!-- PWA Setup (Kept for App Install) -->
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Reverted Body Style to Previous Version */
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .nav-link { cursor: pointer; font-weight: 600; }
+        .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; }
+        .header-title { color: #2c3e50; font-weight: bold; }
+        
+        /* 100% Width Fix */
+        .container-fluid { max-width: 100%; }
+
+        /* --- LEGEND COLORS --- */
+        .badge-p { background-color: #198754; color: white; } 
+        .bg-p { background-color: #d4edda; color: #155724; }
+        
+        .badge-l { background-color: #ffc107; color: black; } 
+        .bg-l { background-color: #fff3cd; color: #856404; }
+        
+        .badge-a { background-color: #dc3545; color: white; } 
+        .bg-a { background-color: #f8d7da; color: #721c24; }
+        
+        .badge-h { background-color: #0dcaf0; color: black; } 
+        .bg-h { background-color: #d1ecf1; color: #0c5460; }
+        
+        .badge-w { background-color: #6c757d; color: white; } 
+        .bg-w { background-color: #e2e3e5; color: #383d41; }
+        
+        .badge-y { background-color: #0d6efd; color: white; } 
+        .bg-y { background-color: #cce5ff; color: #004085; }
+
+        .limit-exceeded { border: 2px solid red; }
+        .hidden { display: none !important; }
+        .text-muted-row { opacity: 0.6; background-color: #f0f0f0; }
+        
+        /* Radio Button Styling */
+        .btn-check:checked + .btn-outline-success { background-color: #198754; color: white; }
+        .btn-check:checked + .btn-outline-warning { background-color: #ffc107; color: black; }
+        .btn-check:checked + .btn-outline-danger { background-color: #dc3545; color: white; }
+        .btn-check:checked + .btn-outline-info { background-color: #0dcaf0; color: black; }
+        .btn-check:checked + .btn-outline-secondary { background-color: #6c757d; color: white; }
+        .btn-check:checked + .btn-outline-primary { background-color: #0d6efd; color: white; }
+        
+        .status-group label { width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+
+        /* Detailed Table Styling */
+        .detailed-table th, .detailed-table td { min-width: 40px; text-align: center; font-size: 13px; padding: 5px; }
+        .status-badge { display: inline-block; width: 25px; height: 25px; line-height: 25px; border-radius: 50%; font-size: 11px; font-weight: bold; color: #333; }
+
+        /* UNIVERSAL FREEZE HEADER STYLING */
+        .table-scroll-container {
+            max-height: 70vh; 
+            overflow: auto;
+            position: relative;
+        }
+        
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+            background-color: #212529 !important;
+            color: white;
+            z-index: 20;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .sticky-col { 
+            position: sticky; 
+            left: 0; 
+            background: white; 
+            z-index: 10; 
+            border-right: 2px solid #ddd; 
+        }
+        .sticky-header th.sticky-col {
+            z-index: 30 !important;
+            background-color: #212529 !important;
+        }
+
+        /* Clickable Name Styling */
+        .clickable-name {
+            cursor: pointer;
+            color: #0d6efd; 
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .clickable-name:hover {
+            text-decoration: underline;
+            background-color: #f1f8ff;
+        }
+        .selected-row-highlight {
+            background-color: #fff3cd !important;
+        }
+
+        /* Loading Overlay */
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .error-box { max-width: 400px; text-align: center; display: none; }
+        
+        /* Dashboard Stats Header */
+        #selected-stats-display {
+            font-size: 0.9rem;
+            margin-left: 15px;
+            padding: 5px 10px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            display: inline-flex;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-item { display: flex; align-items: center; gap: 4px; font-weight: bold; }
+
+        /* --- ADMIN SECURITY STYLES --- */
+        body:not(.is-admin) .admin-only {
+            display: none !important;
+        }
+        body:not(.is-admin) .admin-lock {
+            pointer-events: none;
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+        
+        #btnLogin { font-weight: bold; border: 1px solid rgba(255,255,255,0.5); border-radius: 5px; padding: 5px 15px; }
+        body.is-admin #btnLogin { background-color: #198754; border-color: #198754; content: "Admin Active"; }
+        
+        /* NEW HEADER STYLE FOR DATE/DAY */
+        .header-date-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .header-date-num {
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 2px;
+            margin-bottom: 2px;
+            width: 100%;
+            color: #0dcaf0; /* Blueish for Date like screenshot */
+        }
+        .header-day-name {
+            font-size: 0.75rem;
+            font-weight: normal;
+        }
+        .fri-color { color: #ff6b6b; font-weight: bold; } /* Pink/Red for Friday */
+        
+        /* TOAST STYLE CUSTOMIZATION - CENTERED */
+        .toast-body { font-size: 1.1rem; font-weight: 500; text-align: center; }
+        .has-note { cursor: pointer; } 
+        /* Pulse animation for cells with notes */
+        .has-note .status-badge { box-shadow: 0 0 0 1px rgba(0,0,0,0.1); }
+        
+    </style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+    <div id="spinnerBox" class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h5 class="text-secondary">Connecting to Google Sheets...</h5>
+        <small class="text-muted">Please wait while we fetch data</small>
+    </div>
+    
+    <div id="errorBox" class="error-box">
+        <div class="fs-1 mb-2">⚠️</div>
+        <h4 class="text-danger">Connection Failed</h4>
+        <p class="text-muted small mb-3">
+            Could not connect to Google Apps Script.<br>
+            <b>Possible Reasons:</b><br>
+            1. You didn't create a "New Deployment".<br>
+            2. "Who has access" is not set to "Anyone".<br>
+            3. The URL in code is wrong.
+        </p>
+        <button class="btn btn-primary" onclick="location.reload()">Retry Connection</button>
+        <button class="btn btn-outline-secondary mt-2" onclick="loadDemoData()">Load Demo Mode (Offline)</button>
+    </div>
+</div>
+
+<!-- TOAST NOTIFICATION CONTAINER (CENTERED FOR MOBILE) -->
+<div class="toast-container position-fixed top-50 start-50 translate-middle p-3" style="z-index: 11000;">
+    <div id="noteToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body w-100" id="toastMessage">
+                <!-- Message will appear here -->
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 shadow-sm">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold" href="#">PFF Premium</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item"><a class="nav-link active" id="nav-dashboard" onclick="switchTab('dashboard')">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" id="nav-details" onclick="switchTab('details')">Detailed Report</a></li>
+                <li class="nav-item"><a class="nav-link" id="nav-daily" onclick="switchTab('daily')">Daily Entry</a></li>
+                <li class="nav-item"><a class="nav-link" id="nav-employees" onclick="switchTab('employees')">Employees</a></li>
+                
+                <!-- LOGIN BUTTON -->
+                <li class="nav-item ms-3">
+                    <a class="nav-link text-white" id="btnLogin" onclick="initAdminLogin()">Admin Login</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4">
+
+    <!-- 1. DASHBOARD SECTION -->
+    <div id="dashboard-section">
+        <div class="d-flex flex-wrap align-items-center mb-3">
+            <h3 class="header-title me-2">Attendance Dashboard</h3>
+            <div id="selected-stats-display" class="hidden">
+                <span class="text-primary" id="stat-name">Select Employee</span>:
+                <span class="stat-item"><span class="badge badge-p">P</span> <span id="stat-p">0</span></span>
+                <span class="stat-item"><span class="badge badge-l">L</span> <span id="stat-l">0</span></span>
+                <span class="stat-item"><span class="badge badge-a">A</span> <span id="stat-a">0</span></span>
+                <span class="stat-item"><span class="badge badge-h">H</span> <span id="stat-h">0</span></span>
+                <span class="stat-item"><span class="badge badge-w">W</span> <span id="stat-w">0</span></span>
+                <span class="stat-item"><span class="badge badge-y">Y</span> <span id="stat-y">0</span></span>
+            </div>
+            <div class="ms-auto mt-2 mt-md-0">
+                <select id="monthFilter" class="form-select w-auto" onchange="renderDashboard()">
+                    <option value="all" selected>All Time</option>
+                    <option value="2025-01">January 2025</option>
+                    <option value="2025-02">February 2025</option>
+                    <option value="2025-03">March 2025</option>
+                    <option value="2025-04">April 2025</option>
+                    <option value="2025-05">May 2025</option>
+                    <option value="2025-06">June 2025</option>
+                    <option value="2025-07">July 2025</option>
+                    <option value="2025-08">August 2025</option>
+                    <option value="2025-09">September 2025</option>
+                    <option value="2025-10">October 2025</option>
+                    <option value="2025-11">November 2025</option>
+                    <option value="2025-12">December 2025</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <small class="text-muted"><strong>Legend:</strong> 
+                <span class="badge badge-p">P</span> Presents | 
+                <span class="badge badge-l">L</span> Late-time | 
+                <span class="badge badge-a">A</span> Absence | 
+                <span class="badge badge-h">H</span> Half Day Working | 
+                <span class="badge badge-w">W</span> Weekend | 
+                <span class="badge badge-y">Y</span> Yearly Holiday
+                </small>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-scroll-container">
+                    <table class="table table-bordered text-center align-middle w-100 mb-0">
+                        <thead class="table-dark sticky-header">
+                            <tr>
+                                <th>Employee Name</th>
+                                <th>Presents (P)</th>
+                                <th>Late (L)</th>
+                                <th>Absence (A)</th>
+                                <th>Half Day (H)</th>
+                                <th>Weekend (W)</th>
+                                <th>Yearly (Y)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. DETAILED REPORT SECTION -->
+    <div id="details-section" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="header-title">Monthly Detailed Report</h3>
+            <div class="d-flex align-items-center gap-2">
+                <label class="fw-bold">Select Month:</label>
+                <input type="month" id="detailMonthInput" class="form-control form-control-sm w-auto" onchange="renderDetailedView()">
+            </div>
+        </div>
+
+        <!-- LEGEND HERE -->
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <small class="text-muted"><strong>Legend:</strong> 
+                <span class="badge badge-p">P</span> Presents | 
+                <span class="badge badge-l">L</span> Late-time | 
+                <span class="badge badge-a">A</span> Absence | 
+                <span class="badge badge-h">H</span> Half Day Working | 
+                <span class="badge badge-w">W</span> Weekend | 
+                <span class="badge badge-y">Y</span> Yearly Holiday
+                </small>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-scroll-container">
+                    <table class="table table-bordered table-sm detailed-table mb-0 w-100">
+                        <thead class="table-dark sticky-header" id="detailedHeader"></thead>
+                        <tbody id="detailedBody"></tbody>
+                    </table>
+                </div>
+                <div class="mt-2 text-end p-2">
+                    <span class="badge bg-info text-dark">Tip: Click/Tap on cells to view details</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. DAILY ENTRY SECTION -->
+    <div id="daily-section" class="hidden">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <div>
+                <h3 class="header-title">Daily Attendance Entry</h3>
+                <p class="text-muted mb-0" id="displayDateStr">Loading...</p>
+            </div>
+            
+            <div class="d-flex gap-2 align-items-center">
+                <div class="input-group w-auto">
+                    <span class="input-group-text">Date:</span>
+                    <input type="date" id="attendanceDate" class="form-control" onchange="updateDisplayDate()">
+                </div>
+                <button type="button" class="btn btn-primary admin-only" onclick="saveAttendance()">
+                    Save Today's Attendance
+                </button>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <small class="text-muted"><strong>Legend:</strong> 
+                <span class="badge badge-p">P</span> Presents | 
+                <span class="badge badge-l">L</span> Late-time | 
+                <span class="badge badge-a">A</span> Absence | 
+                <span class="badge badge-h">H</span> Half Day Working | 
+                <span class="badge badge-w">W</span> Weekend | 
+                <span class="badge badge-y">Y</span> Yearly Holiday
+                </small>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <form id="attendanceForm">
+                    <div class="table-scroll-container">
+                        <table class="table table-striped align-middle w-100 mb-0">
+                            <thead class="table-light sticky-header">
+                                <tr>
+                                    <th>Employee Name</th>
+                                    <th class="text-center">Status Selection</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyEntryTableBody"></tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. EMPLOYEES SECTION -->
+    <div id="employees-section" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="header-title">Employee List</h3>
+            <button class="btn btn-success admin-only" data-bs-toggle="modal" data-bs-target="#addEmployeeModal" onclick="setDefaultDate()">
+                + New Employee
+            </button>
+        </div>
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-scroll-container">
+                    <table class="table table-hover w-100 mb-0">
+                        <thead class="table-dark sticky-header">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Join Date</th>
+                                <th>Status / Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODALS -->
+<div class="modal fade" id="customAlertModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center p-4">
+            <div class="mb-2 fs-1" id="alertIcon">✅</div>
+            <h4 id="alertTitle" class="fw-bold">Success</h4>
+            <p id="alertMsg" class="text-muted mb-4">Operation completed.</p>
+            <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="modal fade" id="adminLoginModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title fw-bold">Admin Access</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- ERROR MESSAGE CONTAINER -->
+                <div id="loginErrorMsg" class="alert alert-danger p-2 mb-2 small text-center hidden" role="alert">
+                    Incorrect Password Provided!
+                </div>
+                
+                <label class="form-label small">Enter Password:</label>
+                <input type="password" id="adminPasswordInput" class="form-control mb-3" placeholder="****">
+                <button class="btn btn-primary w-100" onclick="submitAdminLogin()">Login</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="noteModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2 bg-light">
+                <h6 class="modal-title fw-bold" id="noteModalTitle">Add Note</h6>
+                <button type="button" class="btn-close" onclick="closeNoteModal()"></button>
+            </div>
+            <div class="modal-body">
+                <label id="noteLabel" class="form-label small text-muted">Reason:</label>
+                <input type="text" id="modalNoteInput" class="form-control form-control-sm mb-2" placeholder="Enter details...">
+                <input type="time" id="modalTimeInput" class="form-control form-control-sm mb-2 hidden">
+            </div>
+            <div class="modal-footer py-1 border-0">
+                <button type="button" class="btn btn-primary btn-sm w-100" onclick="confirmNote()">Save Note</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="resignModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white py-2">
+                <h6 class="modal-title fw-bold">Employee Resignation</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2">Mark <b id="resignEmpName"></b> as left?</p>
+                <label class="form-label small fw-bold">Last Working Day:</label>
+                <input type="date" id="resignDateInput" class="form-control form-control-sm">
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-danger btn-sm w-100" onclick="confirmResign()">Confirm Resignation</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addEmployeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add New Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addEmployeeForm">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" id="empName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="empPhone" required placeholder="01xxxxxxxxx">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Join Date</label>
+                        <input type="date" class="form-control" id="empJoinDate" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="saveEmployee()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // --- API CONFIG ---
+    // Update this with the NEW URL after deploying code.gs
+    const API_URL = "https://script.google.com/macros/s/AKfycbzOawB-mS6LIojPJ5RJLJpZKVFYOvd5eLrLIi9PHsjX-OdCexchBmhfMSTJXgHwMgvc/exec";
+    
+    // --- DATA STORE ---
+    let employees = [];
+    let attendanceHistory = [];
+    let dailySessionData = {}; 
+    let currentModalContext = { empId: null, status: null };
+    let resignContext = { empId: null };
+    
+    // Toast instance placeholder
+    let currentToast = null;
+
+    // --- PWA REGISTRATION ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .catch(err => console.log('Service Worker failed', err));
+        });
+    }
+
+    // --- NAVBAR AUTO CLOSE (Kept for functionality) ---
+    function closeNavbarOnMobile() {
+        const navBar = document.getElementById('navbarNav');
+        if (navBar.classList.contains('show')) {
+            const bsCollapse = bootstrap.Collapse.getInstance(navBar);
+            if(bsCollapse) bsCollapse.hide();
+            else new bootstrap.Collapse(navBar).hide();
+        }
+    }
+
+    // --- SECURE ADMIN LOGIN LOGIC ---
+    function initAdminLogin() {
+        closeNavbarOnMobile();
+        const errorEl = document.getElementById('loginErrorMsg');
+        if(errorEl) errorEl.classList.add('hidden');
+        
+        if(document.body.classList.contains('is-admin')) {
+            document.body.classList.remove('is-admin');
+            document.getElementById('btnLogin').innerText = "Admin Login";
+            localStorage.removeItem("isAdmin");
+            showAlert("Logged Out", "Admin mode deactivated.", "success");
+        } else {
+            document.getElementById('adminPasswordInput').value = '';
+            new bootstrap.Modal(document.getElementById('adminLoginModal')).show();
+        }
+    }
+
+    function submitAdminLogin() {
+        const pass = document.getElementById('adminPasswordInput').value;
+        const errorEl = document.getElementById('loginErrorMsg');
+        errorEl.classList.add('hidden');
+
+        if(!pass) return;
+
+        showLoading(true);
+
+        fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ op: "admin_login", pass: pass }),
+            headers: { "Content-Type": "text/plain" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            showLoading(false);
+            if(data.result === "success") {
+                document.body.classList.add('is-admin');
+                document.getElementById('btnLogin').innerText = "Logout (Admin)";
+                localStorage.setItem("isAdmin", "true");
+                
+                bootstrap.Modal.getInstance(document.getElementById('adminLoginModal')).hide();
+                showAlert("Success", "Admin Mode Activated");
+            } else {
+                errorEl.innerText = "Incorrect Password Provided!";
+                errorEl.classList.remove('hidden');
+                const passInput = document.getElementById('adminPasswordInput');
+                passInput.value = '';
+                passInput.focus();
+            }
+        })
+        .catch(err => {
+            showLoading(false);
+            alert("Connection Error");
+        });
+    }
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        const today = new Date();
+        document.getElementById('attendanceDate').valueAsDate = today;
+        document.getElementById('empJoinDate').valueAsDate = today;
+        document.getElementById('resignDateInput').valueAsDate = today;
+        
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        document.getElementById('detailMonthInput').value = `${yyyy}-${mm}`;
+
+        if(localStorage.getItem("isAdmin") === "true") {
+            document.body.classList.add('is-admin');
+            document.getElementById('btnLogin').innerText = "Logout (Admin)";
+        }
+
+        document.getElementById('adminPasswordInput').addEventListener('keyup', function(event) {
+            if (event.key === "Enter") {
+                submitAdminLogin();
+            }
+        });
+
+        loadDataFromSheet();
+    };
+
+    function showLoading(show, isError = false) {
+        const overlay = document.getElementById('loadingOverlay');
+        const spinner = document.getElementById('spinnerBox');
+        const errorBox = document.getElementById('errorBox');
+
+        if(show) {
+            overlay.classList.remove('hidden');
+            if(isError) {
+                spinner.style.display = 'none';
+                errorBox.style.display = 'block';
+            } else {
+                spinner.style.display = 'block';
+                errorBox.style.display = 'none';
+            }
+        } else {
+            overlay.classList.add('hidden');
+        }
+    }
+
+    // --- UTILS ---
+    function formatDatePretty(dateStr) {
+        if (!dateStr) return "";
+        try {
+            const date = new Date(dateStr);
+            if(isNaN(date)) return dateStr; 
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+        } catch(e) { return dateStr; }
+    }
+
+    // --- TOAST FUNCTION ---
+    function showNoteToast(message) {
+        const toastEl = document.getElementById('noteToast');
+        document.getElementById('toastMessage').innerHTML = message;
+        
+        // Dispose existing toast if active to reset timer
+        if (currentToast) {
+            currentToast.hide();
+        }
+
+        currentToast = new bootstrap.Toast(toastEl, { delay: 4000 }); // Show for 4 seconds
+        currentToast.show();
+    }
+
+    // --- API CALLS ---
+    function loadDataFromSheet() {
+        showLoading(true);
+        const safetyTimer = setTimeout(() => { showLoading(true, true); }, 8000);
+
+        fetch(API_URL + "?op=get_data")
+            .then(res => res.json())
+            .then(data => {
+                clearTimeout(safetyTimer);
+                if(data.status && data.status === 'error') {
+                     alert("Script Error: " + data.message);
+                     return;
+                }
+                employees = data.employees || [];
+                attendanceHistory = data.attendance || [];
+                
+                updateDisplayDate();
+                renderDashboard();
+                renderEmployeeList(); 
+                showLoading(false);
+            })
+            .catch(err => { console.error("Fetch Error:", err); });
+    }
+
+    function loadDemoData() {
+        employees = [
+            { id: 1, name: "Demo User 1", phone: "017...", joinDate: "2023-01-01", leaveDate: "" },
+            { id: 2, name: "Demo User 2 (Left)", phone: "018...", joinDate: "2023-02-01", leaveDate: "2024-01-01" }
+        ];
+        attendanceHistory = [];
+        updateDisplayDate();
+        renderDashboard();
+        renderEmployeeList();
+        showLoading(false);
+        alert("Running in Demo Mode.");
+    }
+
+    function saveEmployee() {
+        const name = document.getElementById('empName').value;
+        const phone = document.getElementById('empPhone').value;
+        const date = document.getElementById('empJoinDate').value;
+        if(!name || !phone) return;
+
+        showLoading(true);
+        fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ op: "add_employee", name, phone, joinDate: date }),
+            headers: { "Content-Type": "text/plain" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.result === "success") {
+                employees.push({ id: data.id, name, phone, joinDate: date, leaveDate: "" });
+                bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal')).hide();
+                renderEmployeeList();
+                renderDashboard(); 
+                renderDailyEntry();
+                showAlert("Success", "New Employee Added!");
+            }
+            showLoading(false);
+        })
+        .catch(err => { showLoading(false); alert("Error saving."); });
+    }
+
+    function openResignModal(id, name) {
+        closeNavbarOnMobile(); 
+        resignContext = { empId: id };
+        document.getElementById('resignEmpName').innerText = name;
+        new bootstrap.Modal(document.getElementById('resignModal')).show();
+    }
+
+    function confirmResign() {
+        const date = document.getElementById('resignDateInput').value;
+        if(!date) return alert("Please pick a date");
+
+        showLoading(true);
+        fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ op: "mark_left", id: resignContext.empId, date: date }),
+            headers: { "Content-Type": "text/plain" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.result === "success") {
+                const emp = employees.find(e => e.id == resignContext.empId);
+                if(emp) emp.leaveDate = date;
+                
+                bootstrap.Modal.getInstance(document.getElementById('resignModal')).hide();
+                renderEmployeeList();
+                renderDailyEntry(); 
+                showAlert("Updated", "Employee marked as left.");
+            }
+            showLoading(false);
+        })
+        .catch(err => { showLoading(false); alert("Error updating status."); });
+    }
+
+    function saveAttendance() {
+        const date = document.getElementById('attendanceDate').value;
+        let records = [];
+
+        const visibleEmployees = getActiveEmployeesForDate(date);
+
+        visibleEmployees.forEach(emp => {
+            const s = dailySessionData[emp.id] || { status: 'P', note: '' };
+            records.push({
+                empId: emp.id,
+                name: emp.name,
+                date: date,
+                status: s.status,
+                note: s.note
+            });
+        });
+
+        showLoading(true);
+        fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ op: "save_attendance", data: records }),
+            headers: { "Content-Type": "text/plain" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            attendanceHistory = attendanceHistory.filter(r => r.date !== date); 
+            records.forEach(r => attendanceHistory.push(r));
+            showAlert("Saved!", "Attendance synced.");
+            updateDisplayDate();
+            showLoading(false);
+        })
+        .catch(err => { showLoading(false); alert("Error saving."); });
+    }
+
+    // --- UI LOGIC ---
+    function updateDisplayDate() {
+        const dateInput = document.getElementById('attendanceDate');
+        const dateVal = dateInput.valueAsDate;
+        const dateStr = dateInput.value; 
+
+        if(dateVal) {
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('displayDateStr').innerText = dateVal.toLocaleDateString('en-GB', options);
+        }
+        
+        dailySessionData = {};
+        
+        employees.forEach(emp => {
+            const record = attendanceHistory.find(r => String(r.empId) === String(emp.id) && r.date === dateStr);
+            if (record) {
+                dailySessionData[emp.id] = { status: record.status, note: record.note || '' };
+            } else {
+                dailySessionData[emp.id] = { status: 'P', note: '' };
+            }
+        });
+
+        renderDailyEntry();
+    }
+
+    function getActiveEmployeesForDate(dateStr) {
+        return employees.filter(emp => {
+            if (!emp.leaveDate) return true; 
+            return dateStr <= emp.leaveDate;
+        });
+    }
+
+    function formatTimeAMPM(time24) {
+        if (!time24 || !time24.includes(':')) return time24;
+        let [h, m] = time24.split(':');
+        let hours = parseInt(h);
+        let ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${hours}:${m} ${ampm}`;
+    }
+
+    function switchTab(tab) {
+        closeNavbarOnMobile();
+
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        ['dashboard', 'details', 'daily', 'employees'].forEach(id => document.getElementById(id+'-section').classList.add('hidden'));
+
+        document.getElementById('nav-' + tab).classList.add('active');
+        document.getElementById(tab + '-section').classList.remove('hidden');
+
+        if(tab === 'dashboard') renderDashboard();
+        if(tab === 'details') renderDetailedView();
+        if(tab === 'daily') renderDailyEntry();
+        if(tab === 'employees') renderEmployeeList();
+    }
+
+    function showAlert(title, msg, type='success') {
+        document.getElementById('alertTitle').innerText = title;
+        document.getElementById('alertMsg').innerText = msg;
+        document.getElementById('alertIcon').innerText = type === 'success' ? '✅' : '⚠️';
+        new bootstrap.Modal(document.getElementById('customAlertModal')).show();
+    }
+
+    // --- DASHBOARD UPDATE ---
+    function renderDashboard() {
+        const tbody = document.getElementById('dashboardTableBody');
+        tbody.innerHTML = '';
+        const filter = document.getElementById('monthFilter').value;
+        const statsDisplay = document.getElementById('selected-stats-display');
+        statsDisplay.classList.add('hidden'); 
+
+        employees.forEach((emp, index) => {
+            let stats = { P:0, L:0, A:0, H:0, W:0, Y:0 };
+            let empHistory = attendanceHistory.filter(r => String(r.empId) === String(emp.id));
+
+            if (filter !== 'all') {
+                empHistory = empHistory.filter(r => r.date.startsWith(filter));
+            }
+
+            empHistory.forEach(r => { if(stats[r.status] !== undefined) stats[r.status]++; });
+            
+            const nameDisplay = emp.leaveDate ? `${emp.name} <span class="badge bg-secondary" style="font-size:10px">LEFT</span>` : emp.name;
+            const jsonStats = JSON.stringify(stats);
+
+            tbody.innerHTML += `
+                <tr id="dash-row-${emp.id}">
+                    <td class="text-start fw-bold clickable-name" 
+                        onclick='showTopStats("${emp.name}", ${jsonStats}, ${emp.id})'>
+                        ${nameDisplay}
+                    </td>
+                    <td><span class="badge badge-p rounded-pill">${stats.P}</span></td>
+                    <td><span class="badge badge-l rounded-pill">${stats.L}</span></td>
+                    <td><span class="badge badge-a rounded-pill">${stats.A}</span></td>
+                    <td><span class="badge badge-h rounded-pill">${stats.H}</span></td>
+                    <td><span class="badge badge-w rounded-pill">${stats.W}</span></td>
+                    <td><span class="badge badge-y rounded-pill">${stats.Y}</span></td>
+                </tr>
+            `;
+        });
+    }
+
+    function showTopStats(name, stats, empId) {
+        document.querySelectorAll('#dashboardTableBody tr').forEach(r => r.classList.remove('selected-row-highlight'));
+        document.getElementById(`dash-row-${empId}`).classList.add('selected-row-highlight');
+
+        document.getElementById('stat-name').innerText = name;
+        document.getElementById('stat-p').innerText = stats.P;
+        document.getElementById('stat-l').innerText = stats.L;
+        document.getElementById('stat-a').innerText = stats.A;
+        document.getElementById('stat-h').innerText = stats.H;
+        document.getElementById('stat-w').innerText = stats.W;
+        document.getElementById('stat-y').innerText = stats.Y;
+        
+        document.getElementById('selected-stats-display').classList.remove('hidden');
+    }
+
+    function renderDetailedView() {
+        const monthInput = document.getElementById('detailMonthInput').value; 
+        if (!monthInput) return;
+
+        const [yearStr, monthStr] = monthInput.split('-');
+        const year = parseInt(yearStr);
+        const month = parseInt(monthStr) - 1; 
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        let headerHtml = '<th class="sticky-col" style="vertical-align: middle;">Employee Name</th>';
+        const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+        for(let i=1; i<=daysInMonth; i++) {
+            let dateObj = new Date(year, month, i);
+            let dayIndex = dateObj.getDay(); 
+            let dayName = weekDays[dayIndex];
+            
+            let dayColorClass = (dayIndex === 5) ? 'fri-color' : '';
+            
+            headerHtml += `
+                <th class="p-1" style="vertical-align: middle;">
+                    <div class="header-date-box">
+                        <div class="header-date-num">${i}</div>
+                        <div class="header-day-name ${dayColorClass}">${dayName}</div>
+                    </div>
+                </th>`;
+        }
+        document.getElementById('detailedHeader').innerHTML = `<tr>${headerHtml}</tr>`;
+
+        const tbody = document.getElementById('detailedBody');
+        tbody.innerHTML = '';
+
+        employees.forEach(emp => {
+            const nameDisplay = emp.leaveDate ? `${emp.name} (Left)` : emp.name;
+            let rowHtml = `<tr><td class="sticky-col fw-bold text-start bg-light">${nameDisplay}</td>`;
+            
+            for(let d=1; d<=daysInMonth; d++) {
+                let dStr = String(d).padStart(2,'0');
+                let fullDate = `${year}-${String(month+1).padStart(2,'0')}-${dStr}`;
+
+                if(emp.leaveDate && fullDate > emp.leaveDate) {
+                     rowHtml += `<td class="text-muted-row"></td>`;
+                     continue;
+                }
+
+                const record = attendanceHistory.find(r => String(r.empId) === String(emp.id) && r.date === fullDate);
+                
+                if (record) {
+                    let bgClass = '';
+                    if(record.status==='P') bgClass='bg-p';
+                    else if(record.status==='L') bgClass='bg-l';
+                    else if(record.status==='A') bgClass='bg-a';
+                    else if(record.status==='H') bgClass='bg-h'; 
+                    else if(record.status==='W') bgClass='bg-w'; 
+                    else if(record.status==='Y') bgClass='bg-y'; 
+
+                    let displayNote = record.note || '';
+                    if (record.status === 'L' && record.note) displayNote = formatTimeAMPM(record.note);
+                    let tooltip = displayNote ? `${record.status}: ${displayNote}` : record.status;
+                    
+                    // ONCLICK EVENT Logic for Mobile Toast
+                    if (displayNote) {
+                        // Safety: remove newlines and escape quotes
+                        let safeNote = displayNote.replace(/'/g, "\\'").replace(/\n/g, " ");
+                        
+                        // Adding onClick to BOTH td and span for better touch target
+                        rowHtml += `<td class="has-note" onclick="showNoteToast('${record.status}: ${safeNote}')">
+                                        <span class="status-badge ${bgClass}" title="${tooltip}">${record.status}</span>
+                                    </td>`;
+                    } else {
+                        rowHtml += `<td><span class="status-badge ${bgClass}" title="${tooltip}">${record.status}</span></td>`;
+                    }
+
+                } else {
+                    rowHtml += `<td>-</td>`;
+                }
+            }
+            rowHtml += '</tr>';
+            tbody.innerHTML += rowHtml;
+        });
+    }
+
+    function renderDailyEntry() {
+        const tbody = document.getElementById('dailyEntryTableBody');
+        tbody.innerHTML = '';
+        
+        const selectedDate = document.getElementById('attendanceDate').value;
+        const activeEmployees = getActiveEmployeesForDate(selectedDate);
+
+        if(activeEmployees.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No active employees for this date.</td></tr>';
+            return;
+        }
+
+        activeEmployees.forEach(emp => {
+            const currentStatus = dailySessionData[emp.id]?.status || 'P';
+            
+            let buttons = '';
+            ['P','L','A','H','W','Y'].forEach(code => {
+                let color = code=='P'?'success': code=='L'?'warning': code=='A'?'danger': code=='H'?'info': code=='W'?'secondary':'primary';
+                let checked = currentStatus === code ? 'checked' : '';
+                buttons += `
+                    <input type="radio" class="btn-check" name="status_${emp.id}" id="${code}_${emp.id}" 
+                           value="${code}" ${checked} onclick="handleStatusClick(${emp.id}, '${code}')">
+                    <label class="btn btn-outline-${color}" for="${code}_${emp.id}">${code}</label>
+                `;
+            });
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-bold">${emp.name}</td>
+                    <td class="text-center"><div class="status-group admin-lock">${buttons}</div></td>
+                </tr>
+            `;
+            if(!dailySessionData[emp.id]) dailySessionData[emp.id] = { status: 'P', note: '' };
+        });
+    }
+
+    function handleStatusClick(empId, status) {
+        dailySessionData[empId].status = status;
+        if (['L', 'A', 'H', 'Y'].includes(status)) {
+            openNoteModal(empId, status);
+        } else {
+            dailySessionData[empId].note = '';
+        }
+    }
+
+    function openNoteModal(empId, status) {
+        currentModalContext = { empId, status };
+        const modal = new bootstrap.Modal(document.getElementById('noteModal'));
+        const noteInput = document.getElementById('modalNoteInput');
+        const timeInput = document.getElementById('modalTimeInput');
+        
+        noteInput.value = ''; timeInput.value = '';
+        noteInput.classList.add('hidden'); timeInput.classList.add('hidden');
+
+        if (status === 'L') {
+            document.getElementById('noteModalTitle').innerText = "Entry Time";
+            document.getElementById('noteLabel').innerText = "Late Time:";
+            timeInput.classList.remove('hidden');
+            timeInput.value = new Date().toTimeString().slice(0,5);
+        } else {
+            document.getElementById('noteModalTitle').innerText = "Add Details";
+            document.getElementById('noteLabel').innerText = "Reason / Note:";
+            noteInput.classList.remove('hidden');
+        }
+        modal.show();
+    }
+
+    function closeNoteModal() {
+        bootstrap.Modal.getInstance(document.getElementById('noteModal')).hide();
+    }
+
+    function confirmNote() {
+        const { empId, status } = currentModalContext;
+        let val = (status === 'L') ? document.getElementById('modalTimeInput').value : document.getElementById('modalNoteInput').value;
+        if(!val) val = status === 'L' ? 'No time' : 'No details';
+
+        dailySessionData[empId].note = val;
+        closeNoteModal();
+    }
+
+    function renderEmployeeList() {
+        const tbody = document.getElementById('employeeTableBody');
+        tbody.innerHTML = '';
+        employees.forEach(emp => {
+            let statusBtn = '';
+            // Pretty Date for Join Date
+            const prettyJoinDate = formatDatePretty(emp.joinDate);
+
+            if(emp.leaveDate) {
+                // Pretty Date for Leave Date
+                const prettyLeaveDate = formatDatePretty(emp.leaveDate);
+                statusBtn = `<span class="badge bg-secondary">Left: ${prettyLeaveDate}</span>`;
+            } else {
+                statusBtn = `<button class="btn btn-sm btn-outline-danger admin-only" onclick="openResignModal(${emp.id}, '${emp.name}')">Resign / Left</button>`;
+            }
+            tbody.innerHTML += `<tr>
+                <td>${emp.id}</td>
+                <td>${emp.name}</td>
+                <td>${emp.phone}</td>
+                <td>${prettyJoinDate}</td>
+                <td>${statusBtn}</td>
+            </tr>`;
+        });
+    }
+
+    function setDefaultDate() {
+        document.getElementById('empJoinDate').valueAsDate = new Date();
+        document.getElementById('empName').value = '';
+        document.getElementById('empPhone').value = '';
+    }
+</script>
+</body>
+</html>
