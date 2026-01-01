@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PFF Premium Attendance</title>
     
-    <!-- PWA Setup (Kept for App Install) -->
     <meta name="theme-color" content="#0d6efd">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         /* Reverted Body Style to Previous Version */
@@ -170,7 +168,6 @@
 </head>
 <body>
 
-<!-- Loading Overlay -->
 <div id="loadingOverlay">
     <div id="spinnerBox" class="text-center">
         <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
@@ -193,19 +190,16 @@
     </div>
 </div>
 
-<!-- TOAST NOTIFICATION CONTAINER (CENTERED FOR MOBILE) -->
 <div class="toast-container position-fixed top-50 start-50 translate-middle p-3" style="z-index: 11000;">
     <div id="noteToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body w-100" id="toastMessage">
-                <!-- Message will appear here -->
-            </div>
+                </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     </div>
 </div>
 
-<!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 shadow-sm">
     <div class="container-fluid px-4">
         <a class="navbar-brand fw-bold" href="#">PFF Premium</a>
@@ -219,7 +213,6 @@
                 <li class="nav-item"><a class="nav-link" id="nav-daily" onclick="switchTab('daily')">Daily Entry</a></li>
                 <li class="nav-item"><a class="nav-link" id="nav-employees" onclick="switchTab('employees')">Employees</a></li>
                 
-                <!-- LOGIN BUTTON -->
                 <li class="nav-item ms-3">
                     <a class="nav-link text-white" id="btnLogin" onclick="initAdminLogin()">Admin Login</a>
                 </li>
@@ -230,7 +223,6 @@
 
 <div class="container-fluid px-4">
 
-    <!-- 1. DASHBOARD SECTION -->
     <div id="dashboard-section">
         <div class="d-flex flex-wrap align-items-center mb-3">
             <h3 class="header-title me-2">Attendance Dashboard</h3>
@@ -243,24 +235,14 @@
                 <span class="stat-item"><span class="badge badge-w">W</span> <span id="stat-w">0</span></span>
                 <span class="stat-item"><span class="badge badge-y">Y</span> <span id="stat-y">0</span></span>
             </div>
-            <div class="ms-auto mt-2 mt-md-0">
-                <select id="monthFilter" class="form-select w-auto" onchange="renderDashboard()">
-                    <option value="all" selected>All Time</option>
-                    <option value="2025-01">January 2025</option>
-                    <option value="2025-02">February 2025</option>
-                    <option value="2025-03">March 2025</option>
-                    <option value="2025-04">April 2025</option>
-                    <option value="2025-05">May 2025</option>
-                    <option value="2025-06">June 2025</option>
-                    <option value="2025-07">July 2025</option>
-                    <option value="2025-08">August 2025</option>
-                    <option value="2025-09">September 2025</option>
-                    <option value="2025-10">October 2025</option>
-                    <option value="2025-11">November 2025</option>
-                    <option value="2025-12">December 2025</option>
-                </select>
+            
+            <div class="ms-auto mt-2 mt-md-0 d-flex gap-2">
+                <input type="month" id="monthFilter" class="form-control" onchange="renderDashboard()" style="width: auto;" title="Filter by Month">
+                <button class="btn btn-outline-secondary" onclick="clearDashboardFilter()" title="Show All History">
+                    All Time
+                </button>
             </div>
-        </div>
+            </div>
         
         <div class="card mb-3">
             <div class="card-body py-2">
@@ -297,7 +279,6 @@
         </div>
     </div>
 
-    <!-- 2. DETAILED REPORT SECTION -->
     <div id="details-section" class="hidden">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="header-title">Monthly Detailed Report</h3>
@@ -307,7 +288,6 @@
             </div>
         </div>
 
-        <!-- LEGEND HERE -->
         <div class="card mb-3">
             <div class="card-body py-2">
                 <small class="text-muted"><strong>Legend:</strong> 
@@ -336,7 +316,6 @@
         </div>
     </div>
 
-    <!-- 3. DAILY ENTRY SECTION -->
     <div id="daily-section" class="hidden">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
             <div>
@@ -387,7 +366,6 @@
         </div>
     </div>
 
-    <!-- 4. EMPLOYEES SECTION -->
     <div id="employees-section" class="hidden">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="header-title">Employee List</h3>
@@ -417,7 +395,6 @@
 
 </div>
 
-<!-- MODALS -->
 <div class="modal fade" id="customAlertModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center p-4">
@@ -429,7 +406,6 @@
     </div>
 </div>
 
-<!-- ADMIN LOGIN MODAL -->
 <div class="modal fade" id="adminLoginModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -438,7 +414,6 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <!-- ERROR MESSAGE CONTAINER -->
                 <div id="loginErrorMsg" class="alert alert-danger p-2 mb-2 small text-center hidden" role="alert">
                     Incorrect Password Provided!
                 </div>
@@ -618,7 +593,12 @@
         
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, '0');
-        document.getElementById('detailMonthInput').value = `${yyyy}-${mm}`;
+        const currentMonthStr = `${yyyy}-${mm}`;
+
+        // --- NEW: Set Default Month for Dashboard & Details ---
+        document.getElementById('detailMonthInput').value = currentMonthStr;
+        document.getElementById('monthFilter').value = currentMonthStr;
+        // ------------------------------------------------------
 
         if(localStorage.getItem("isAdmin") === "true") {
             document.body.classList.add('is-admin');
@@ -876,7 +856,11 @@
     function renderDashboard() {
         const tbody = document.getElementById('dashboardTableBody');
         tbody.innerHTML = '';
+        
+        // MODIFIED: Read from input instead of Select
         const filter = document.getElementById('monthFilter').value;
+        // -------------------------------------------
+        
         const statsDisplay = document.getElementById('selected-stats-display');
         statsDisplay.classList.add('hidden'); 
 
@@ -884,7 +868,10 @@
             let stats = { P:0, L:0, A:0, H:0, W:0, Y:0 };
             let empHistory = attendanceHistory.filter(r => String(r.empId) === String(emp.id));
 
-            if (filter !== 'all') {
+            // MODIFIED: Filter Logic
+            // If filter has value (e.g. "2026-01"), show specific month
+            // If filter is empty, show All Time
+            if (filter) {
                 empHistory = empHistory.filter(r => r.date.startsWith(filter));
             }
 
@@ -909,6 +896,13 @@
             `;
         });
     }
+
+    // --- NEW FUNCTION: Clear Filter ---
+    function clearDashboardFilter() {
+        document.getElementById('monthFilter').value = '';
+        renderDashboard();
+    }
+    // ---------------------------------
 
     function showTopStats(name, stats, empId) {
         document.querySelectorAll('#dashboardTableBody tr').forEach(r => r.classList.remove('selected-row-highlight'));
