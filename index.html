@@ -948,18 +948,12 @@
         const tbody = document.getElementById('detailedBody');
         tbody.innerHTML = '';
 
-        employees.forEach(emp => {
-            const nameDisplay = emp.leaveDate ? `${emp.name} (Left)` : emp.name;
-            let rowHtml = `<tr><td class="sticky-col fw-bold text-start bg-light">${nameDisplay}</td>`;
+        employees.filter(emp => !emp.leaveDate).forEach(emp => {
+            let rowHtml = `<tr><td class="sticky-col fw-bold text-start bg-light">${emp.name}</td>`;
             
             for(let d=1; d<=daysInMonth; d++) {
                 let dStr = String(d).padStart(2,'0');
                 let fullDate = `${year}-${String(month+1).padStart(2,'0')}-${dStr}`;
-
-                if(emp.leaveDate && fullDate > emp.leaveDate) {
-                     rowHtml += `<td class="text-muted-row"></td>`;
-                     continue;
-                }
 
                 const record = attendanceHistory.find(r => String(r.empId) === String(emp.id) && r.date === fullDate);
                 
