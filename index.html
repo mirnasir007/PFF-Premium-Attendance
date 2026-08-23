@@ -814,10 +814,7 @@
     }
 
     function getActiveEmployeesForDate(dateStr) {
-        return employees.filter(emp => {
-            if (!emp.leaveDate) return true; 
-            return dateStr <= emp.leaveDate;
-        });
+        return employees.filter(emp => !emp.leaveDate);
     }
 
     function formatTimeAMPM(time24) {
@@ -864,7 +861,7 @@
         const statsDisplay = document.getElementById('selected-stats-display');
         statsDisplay.classList.add('hidden'); 
 
-        employees.forEach((emp, index) => {
+        employees.filter(emp => !emp.leaveDate).forEach((emp, index) => {
             let stats = { P:0, L:0, A:0, H:0, W:0, Y:0 };
             let empHistory = attendanceHistory.filter(r => String(r.empId) === String(emp.id));
 
