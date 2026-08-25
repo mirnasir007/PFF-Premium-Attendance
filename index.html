@@ -356,6 +356,7 @@
                                 <tr>
                                     <th>Employee Name</th>
                                     <th class="text-center">Status Selection</th>
+                                    <th class="text-center">Remark</th>
                                 </tr>
                             </thead>
                             <tbody id="dailyEntryTableBody"></tbody>
@@ -1000,28 +1001,98 @@
         const activeEmployees = getActiveEmployeesForDate(selectedDate);
 
         if(activeEmployees.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No active employees for this date.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No active employees for this date.</td></tr>';
             return;
         }
 
+        const selectedYear = new Date(selectedDate).getFullYear();
+        const selectedMonth = selectedDate.substring(0, 7); // Gets "YYYY-MM" format
+
         activeEmployees.forEach(emp => {
-            const currentStatus = dailySessionData[emp.id]?.status || 'P';
+            // Calculate 1 Year Tenure
+            const joinDateObj = new Date(emp.joinDate);
+            const oneYearAfterJoin = new Date(joinDateObj);
+            oneYearAfterJoin.setFullYear(oneYearAfterJoin.getFullYear() + 1);
+            const selectedDateObj = new Date(selectedDate);
+            const isEligibleForY = selectedDateObj >= oneYearAfterJoin;
+
+            // Calculate Used Yearly Holiday & Monthly Absence
+            let usedY = 0;
+            let usedH = 0;
+            let monthAbsenceA = 0;
+            let monthAbsenceH = 0;
+
+            attendanceHistory.forEach(r => {
+                if (String(r.empId) === String(emp.id) && r.date !== selectedDate) {
+                    // Check Yearly records
+                    if (r.date.startsWith(selectedYear.toString())) {
+                        if (r.status === 'Y') usedY += 1;
+                        if (r.status === 'H') usedH += 0.5;
+                    }
+                    // Check Monthly records for Absence
+                    if (r.date.startsWith(selectedMonth)) {
+                        if (r.status === 'A') monthAbsenceA += 1;
+                        if (r.status === 'H') monthAbsenceH += 0.5;
+                    }
+                }
+            });
+
+            const totalUsed = usedY + usedH;
+            const remainingY = 10 - totalUsed;
+            const totalMonthlyAbsence = monthAbsenceA + monthAbsenceH;
+            
+            let currentStatus = dailySessionData[emp.id]?.status || 'P';
+            
+            // Safety: Revert to 'P' if 'Y' was previously selected but is no longer allowed
+            if (currentStatus === 'Y' && (!isEligibleForY || remainingY < 1)) {
+                currentStatus = 'P';
+                if (dailySessionData[emp.id]) dailySessionData[emp.id].status = 'P';
+            }
             
             let buttons = '';
             ['P','L','A','H','W','Y'].forEach(code => {
+                // Identify if Y should be disabled (japsa) instead of hidden
+                let isDisabled = (code === 'Y' && (!isEligibleForY || remainingY < 1));
+                
                 let color = code=='P'?'success': code=='L'?'warning': code=='A'?'danger': code=='H'?'info': code=='W'?'secondary':'primary';
-                let checked = currentStatus === code ? 'checked' : '';
+                let checked = (currentStatus === code && !isDisabled) ? 'checked' : '';
+                let disabledAttr = isDisabled ? 'disabled' : '';
+                let styleAttr = isDisabled ? 'opacity: 0.4; pointer-events: none;' : '';
+                
                 buttons += `
                     <input type="radio" class="btn-check" name="status_${emp.id}" id="${code}_${emp.id}" 
-                           value="${code}" ${checked} onclick="handleStatusClick(${emp.id}, '${code}')">
-                    <label class="btn btn-outline-${color}" for="${code}_${emp.id}">${code}</label>
+                           value="${code}" ${checked} ${disabledAttr} onclick="handleStatusClick(${emp.id}, '${code}')">
+                    <label class="btn btn-outline-${color}" for="${code}_${emp.id}" style="${styleAttr}">${code}</label>
                 `;
             });
 
+            // Display Info Text (Yearly Remaining OR Monthly Absence)
+            let infoText = '';
+            if (isEligibleForY && remainingY > 0) {
+                let displayRem = remainingY % 1 !== 0 ? remainingY : remainingY;
+                if (displayRem === 0.5) displayRem = '.5';
+                let textDays = remainingY > 1 ? 'days' : 'day';
+                infoText = `<span class="text-success fw-bold" style="font-size: 13px; white-space: nowrap;">${displayRem} ${textDays} Yearly Holiday Remaining</span>`;
+            } else if (totalMonthlyAbsence > 0) {
+                let displayAbs = totalMonthlyAbsence % 1 !== 0 ? totalMonthlyAbsence : totalMonthlyAbsence;
+                if (displayAbs === 0.5) displayAbs = '.5';
+                let textDays = totalMonthlyAbsence > 1 ? 'days' : 'day';
+                infoText = `<span class="text-danger fw-bold" style="font-size: 13px; white-space: nowrap;">Absence ${displayAbs} ${textDays}</span>`;
+            } else {
+                infoText = `<span class="text-muted">-</span>`;
+            }
+
             tbody.innerHTML += `
                 <tr>
-                    <td class="fw-bold">${emp.name}</td>
-                    <td class="text-center"><div class="status-group admin-lock">${buttons}</div></td>
+                    <td class="fw-bold align-middle">${emp.name}</td>
+                    <td class="text-center">
+                        <div class="status-group admin-lock d-flex align-items-center justify-content-center">
+                            ${buttons}
+                        </div>
+                    </td>
+                    <td class="text-center align-middle">
+                        ${infoText}
+                    </td>
                 </tr>
             `;
             if(!dailySessionData[emp.id]) dailySessionData[emp.id] = { status: 'P', note: '' };
