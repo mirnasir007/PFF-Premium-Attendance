@@ -1016,43 +1016,63 @@
             const selectedDateObj = new Date(selectedDate);
             const isEligibleForY = selectedDateObj >= oneYearAfterJoin;
 
-            // Calculate Used Yearly Holiday & Monthly Absence
-            let usedY = 0;
-            let usedH = 0;
-            let monthAbsenceA = 0;
-            let monthAbsenceH = 0;
+            // Calculate Used Yearly Holiday & Monthly Absence (Chronological)
+            let yearly_used = 0;
+            let monthly_absence = 0;
 
-            attendanceHistory.forEach(r => {
-                if (String(r.empId) === String(emp.id) && r.date !== selectedDate) {
-                    // Check Yearly records
-                    if (r.date.startsWith(selectedYear.toString())) {
-                        if (r.status === 'Y') usedY += 1;
-                        if (r.status === 'H') usedH += 0.5;
-                    }
-                    // Check Monthly records for Absence
-                    if (r.date.startsWith(selectedMonth)) {
-                        if (r.status === 'A') monthAbsenceA += 1;
-                        if (r.status === 'H') monthAbsenceH += 0.5;
+            // Get employee's history for the year, excluding the selected date
+            let empHistoryThisYear = attendanceHistory.filter(r => 
+                String(r.empId) === String(emp.id) && 
+                r.date.startsWith(selectedYear.toString()) && 
+                r.date !== selectedDate
+            );
+
+            // Sort chronologically to correctly track when the 10 days are exhausted
+            empHistoryThisYear.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            empHistoryThisYear.forEach(r => {
+                let is_selected_month = r.date.startsWith(selectedMonth);
+                
+                if (r.status === 'A') {
+                    if (is_selected_month) monthly_absence += 1;
+                } else if (r.status === 'Y') {
+                    yearly_used += 1;
+                } else if (r.status === 'H') {
+                    // Check if Yearly Holiday is still available for this 'H'
+                    if (yearly_used < 10) {
+                        yearly_used += 0.5; // Counts as Yearly Holiday
+                    } else {
+                        if (is_selected_month) monthly_absence += 0.5; // Counts as Absence
                     }
                 }
             });
 
-            const totalUsed = usedY + usedH;
-            const remainingY = 10 - totalUsed;
-            const totalMonthlyAbsence = monthAbsenceA + monthAbsenceH;
+            let remainingY = 10 - yearly_used;
+            if (remainingY < 0) remainingY = 0; // Clamp remaining to 0
+
+            const totalMonthlyAbsence = monthly_absence;
             
             let currentStatus = dailySessionData[emp.id]?.status || 'P';
             
-            // Safety: Revert to 'P' if 'Y' was previously selected but is no longer allowed
+            // Safety: Revert to 'P' if 'Y' or 'A' was previously selected but is no longer allowed
             if (currentStatus === 'Y' && (!isEligibleForY || remainingY < 1)) {
+                currentStatus = 'P';
+                if (dailySessionData[emp.id]) dailySessionData[emp.id].status = 'P';
+            }
+            if (currentStatus === 'A' && (isEligibleForY && remainingY >= 1)) {
                 currentStatus = 'P';
                 if (dailySessionData[emp.id]) dailySessionData[emp.id].status = 'P';
             }
             
             let buttons = '';
             ['P','L','A','H','W','Y'].forEach(code => {
-                // Identify if Y should be disabled (japsa) instead of hidden
-                let isDisabled = (code === 'Y' && (!isEligibleForY || remainingY < 1));
+                // Identify if Y or A should be disabled (japsa)
+                let isDisabled = false;
+                if (code === 'Y' && (!isEligibleForY || remainingY < 1)) {
+                    isDisabled = true;
+                } else if (code === 'A' && (isEligibleForY && remainingY >= 1)) {
+                    isDisabled = true;
+                }
                 
                 let color = code=='P'?'success': code=='L'?'warning': code=='A'?'danger': code=='H'?'info': code=='W'?'secondary':'primary';
                 let checked = (currentStatus === code && !isDisabled) ? 'checked' : '';
