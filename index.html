@@ -1039,7 +1039,7 @@
                     yearly_used += 1;
                 } else if (r.status === 'H') {
                     // Check if Yearly Holiday is still available for this 'H'
-                    if (yearly_used < 10) {
+                    if (isEligibleForY && yearly_used < 10) {
                         yearly_used += 0.5; // Counts as Yearly Holiday
                     } else {
                         if (is_selected_month) monthly_absence += 0.5; // Counts as Absence
@@ -1067,7 +1067,7 @@
             } else if (currentStatus === 'Y') {
                 yearly_used += 1;
             } else if (currentStatus === 'H') {
-                if (yearly_used < 10) {
+                if (isEligibleForY && yearly_used < 10) {
                     yearly_used += 0.5;
                 } else {
                     monthly_absence += 0.5;
